@@ -1,11 +1,13 @@
 import asyncio
-import json
 from pathlib import Path
 from typing import Any, cast
 
 import discord
 from discord import ButtonStyle
 from discord.ext import commands
+
+# Імпортуємо наші нові View
+from views.game_ui import GenderView
 
 # Спробуємо імпортувати конфіг відносно розташування файлу
 try:
@@ -18,106 +20,6 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-
-class ClassView(discord.ui.View):
-    """Вибір класу персонажа."""
-
-    def __init__(self, nickname: str, gender: str):
-        super().__init__(timeout=None)
-        self.nickname = nickname
-        self.gender = gender
-
-    async def create_player_file(self, interaction: discord.Interaction, class_key: str):
-        base_path = Path(__file__).resolve().parent
-        template_path = base_path / "resources" / "classes" / f"{class_key}.json"
-        players_dir = base_path / "players"
-        players_dir.mkdir(exist_ok=True)
-
-        player_file = players_dir / f"{interaction.user.id}.json"
-
-        # Завантажуємо базові параметри
-        with open(template_path, "r", encoding="utf-8") as f:
-            stats = json.load(f)
-
-        # Додаємо персональні дані
-        player_data = {
-            "nickname": self.nickname,
-            "gender": self.gender,
-            "user_id": interaction.user.id,
-            "stats": stats
-        }
-
-        # Зберігаємо файл гравця
-        with open(player_file, "w", encoding="utf-8") as f:
-            json.dump(player_data, f, ensure_ascii=False, indent=4)
-
-        return stats
-
-    @discord.ui.button(label="Воїн", style=cast(Any, ButtonStyle.secondary))
-    async def warrior(
-        self, interaction: discord.Interaction, _: discord.ui.Button
-    ):
-        stats = await self.create_player_file(interaction, "warrior")
-        msg = (
-            "Ти став могутнім Воїном!"
-            if self.gender == "male"
-            else "Ти стала могутньою Воїтелькою!"
-        )
-        await interaction.response.send_message(  # type: ignore
-            f"{msg}\nТвої початкові характеристики: Життя: {stats['health']}, Сила: {stats['strength']}\nТвій шлях починається тут..."
-        )
-        self.stop()
-
-    @discord.ui.button(label="Маг", style=cast(Any, ButtonStyle.secondary))
-    async def mage(self, interaction: discord.Interaction, _: discord.ui.Button):
-        stats = await self.create_player_file(interaction, "mage")
-        msg = (
-            "Ти став мудрим Магом!"
-            if self.gender == "male"
-            else "Ти стала мудрою Магинею!"
-        )
-        await interaction.response.send_message(  # type: ignore
-            f"{msg}\nТвої початкові характеристики: Магія: {stats['magic']}, Життя: {stats['health']}\nТвоя магія прокидається..."
-        )
-        self.stop()
-
-    @discord.ui.button(label="Лучник", style=cast(Any, ButtonStyle.secondary))
-    async def archer(self, interaction: discord.Interaction, _: discord.ui.Button):
-        stats = await self.create_player_file(interaction, "archer")
-        msg = (
-            "Ти став влучним Лучником!"
-            if self.gender == "male"
-            else "Ти стала влучною Лучницею!"
-        )
-        await interaction.response.send_message(  # type: ignore
-            f"{msg}\nТвої початкові характеристики: Спритність: {stats['agility']}, Життя: {stats['health']}\nТвоя стріла завжди знайде ціль..."
-        )
-        self.stop()
-
-
-class GenderView(discord.ui.View):
-    """Вибір статі після введення імені."""
-
-    def __init__(self, nickname: str):
-        super().__init__(timeout=None)
-        self.nickname = nickname
-
-    @discord.ui.button(label="Чоловіча", style=cast(Any, ButtonStyle.primary))
-    async def male(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await interaction.response.send_message(  # type: ignore
-            f"Вітаю, {self.nickname}! Оберіть свій клас:",
-            view=ClassView(self.nickname, "male"),
-        )
-        self.stop()
-
-    @discord.ui.button(label="Жіноча", style=cast(Any, ButtonStyle.danger))
-    async def female(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await interaction.response.send_message(  # type: ignore
-            f"Вітаю, {self.nickname}! Оберіть свій клас:",
-            view=ClassView(self.nickname, "female"),
-        )
-        self.stop()
 
 
 class StoryView(discord.ui.View):
@@ -253,7 +155,7 @@ class StoryView(discord.ui.View):
         await self.start_story(interaction, "Історія 3")
 
 
-@bot.tree.command(name="setup", description="Почати вибір історії")
+@bot.tree.command(name="choice_story", description="Почати вибір історії")
 async def setup(interaction: discord.Interaction):
     await interaction.response.send_message(  # type: ignore
         "Оберіть свою історію:", view=StoryView(), ephemeral=True
@@ -272,4 +174,3 @@ async def on_ready():
 
 if __name__ == "__main__":
     bot.run(DISCORD_TOKEN)
-
