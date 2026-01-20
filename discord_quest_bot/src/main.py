@@ -1,4 +1,5 @@
 import asyncio
+import json
 from pathlib import Path
 from typing import Any, cast
 
@@ -162,6 +163,39 @@ async def setup(interaction: discord.Interaction):
     )
 
 
+@bot.tree.command(name="stats", description="Показати ваші актуальні характеристики")
+async def stats(interaction: discord.Interaction):
+    base_path = Path(__file__).resolve().parent
+    player_file = base_path / "players" / f"{interaction.user.id}.json"
+
+    if not player_file.exists():
+        await interaction.response.send_message(
+            "У вас ще немає персонажа. Почніть гру за допомогою команди `/choice_story`!",
+            ephemeral=True
+        )
+        return
+
+    with open(player_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    p_stats = data["stats"]
+    nickname = data["nickname"]
+    class_name = p_stats["class_name"]
+
+    embed = discord.Embed(
+        title=f"📊 Характеристики персонажа: {nickname}",
+        description=f"**Клас:** {class_name}",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="❤️ Життя", value=str(p_stats["health"]), inline=True)
+    embed.add_field(name="⚔️ Сила", value=str(p_stats["strength"]), inline=True)
+    embed.add_field(name="🏹 Спритність", value=str(p_stats["agility"]), inline=True)
+    embed.add_field(name="✨ Магія", value=str(p_stats["magic"]), inline=True)
+    embed.set_footer(text=f"ID гравця: {interaction.user.id}")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 @bot.event
 async def on_ready():
     try:
@@ -174,3 +208,4 @@ async def on_ready():
 
 if __name__ == "__main__":
     bot.run(DISCORD_TOKEN)
+
