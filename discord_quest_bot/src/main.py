@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
+import os
 
 from discord_quest_bot.src.config import DISCORD_TOKEN
 
@@ -62,22 +63,57 @@ class StoryView(discord.ui.View):
         guild = interaction.guild
         user = interaction.user
 
-        # Створення приватного каналу
+        if not guild.me.guild_permissions.manage_channels:
+            await interaction.response.send_message(
+                "Помилка: У бота немає дозволу 'Керування каналами'.",
+                ephemeral=True
+            )
+            return
+
+        # Налаштування приватності
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
             user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
         }
 
-        channel = await guild.create_text_channel(
-            name=f"квест-{user.name}",
-            overwrites=overwrites,
-            category=interaction.channel.category  # Створити в тій же категорії
-        )
+        try:
+            channel = await guild.create_text_channel(
+                name=f"квест-{user.name}",
+                overwrites=overwrites,
+                category=interaction.channel.category
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "Помилка: Бот не має прав для створення каналів.",
+                ephemeral=True
+            )
+            return
 
         await interaction.response.send_message(f"Пригода чекає на тебе тут: {channel.mention}", ephemeral=True)
 
-        await channel.send(f"Ви обрали історію: **{story_name}**.\nДля початку, напиши свій ігровий нікнейм у цей чат:")
+        # Визначаємо динамічні шляхи до ресурсів
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        resources_path = os.path.join(base_path, "resources")
+
+        content = f"Ви обрали історію: **{story_name}**."
+        file = None
+
+        if story_name == "Хто я":
+            msg_file = os.path.join(resources_path, "messages", "who_am_i.txt")
+            img_file = os.path.join(resources_path, "images", "who_am_i.png")
+
+            if os.path.exists(msg_file):
+                with open(msg_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+            
+            if os.path.exists(img_file):
+                file = discord.File(img_file, filename="story.png")
+            else:
+                print(f"DEBUG: Картинку не знайдено: {img_file}")
+
+        await channel.send(content, file=file)
+        await channel.send("Для початку, напиши свій ігровий нікнейм у цей чат:")
 
         def check(m):
             return m.author == user and m.channel == channel
