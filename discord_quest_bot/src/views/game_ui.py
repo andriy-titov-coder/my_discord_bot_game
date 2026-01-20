@@ -310,10 +310,22 @@ class DirectionView(discord.ui.View):
 
     @discord.ui.button(label="Ліворуч", style=cast(Any, ButtonStyle.primary))
     async def left(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await interaction.response.send_message(
-            "Ви йдете на дим і бачите старе вогнище... Здається, ваша доля вирішиться кидком кубика.",
-            view=DiceView()
+        base_path = Path(__file__).resolve().parent.parent
+        img_path = base_path / "resources" / "images" / "wai_dice.png"
+
+        chance_msg = (
+            "Ви йдете на дим і бачите старе вогнище... Ваша доля вирішиться кидком кубика (1-24):\n\n"
+            "🎲 **1-8**: Ви знайдете цінну зброю свого класу (+10 до основної характеристики).\n"
+            "🎲 **9-16**: Ви зустрінете таємничу постать, що запропонує випробування.\n"
+            "🎲 **17-24**: Ви знайдете лише попіл і порожнечу (доведеться повернутися)."
         )
+
+        if img_path.exists():
+            file = discord.File(str(img_path), filename="dice.png")
+            await interaction.response.send_message(chance_msg, file=file, view=DiceView())
+        else:
+            await interaction.response.send_message(chance_msg, view=DiceView())
+
         self.stop()
 
     @discord.ui.button(label="Прямо", style=cast(Any, ButtonStyle.primary))
