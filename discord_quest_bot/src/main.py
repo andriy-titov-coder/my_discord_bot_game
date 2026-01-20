@@ -181,6 +181,7 @@ async def stats(interaction: discord.Interaction):
     p_stats = data["stats"]
     nickname = data["nickname"]
     class_name = p_stats["class_name"]
+    inventory = data.get("inventory", [])
 
     embed = discord.Embed(
         title=f"📊 Характеристики персонажа: {nickname}",
@@ -191,6 +192,11 @@ async def stats(interaction: discord.Interaction):
     embed.add_field(name="⚔️ Сила", value=str(p_stats["strength"]), inline=True)
     embed.add_field(name="🏹 Спритність", value=str(p_stats["agility"]), inline=True)
     embed.add_field(name="✨ Магія", value=str(p_stats["magic"]), inline=True)
+
+    # Додаємо розділ інвентарю
+    inv_text = ", ".join(inventory) if inventory else "Порожньо"
+    embed.add_field(name="🎒 Інвентар", value=inv_text, inline=False)
+
     embed.set_footer(text=f"ID гравця: {interaction.user.id}")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)

@@ -42,15 +42,22 @@ class DiceView(discord.ui.View):
 
         file_prefix, stat_to_up, weapon_name = weapon_map.get(class_name, ("wai_sword", "strength", "Меч"))
 
-        player_data["stats"][stat_to_up] += 10
-        with open(player_file, "w", encoding="utf-8") as f:
-            json.dump(player_data, f, ensure_ascii=False, indent=4)
+        if weapon_name not in player_data.get("inventory", []):
+            player_data.setdefault("inventory", []).append(weapon_name)
+            player_data["stats"][stat_to_up] += 10
+
+            with open(player_file, "w", encoding="utf-8") as f:
+                json.dump(player_data, f, ensure_ascii=False, indent=4)
+
+            status_msg = f"✨ Ви отримали **{weapon_name}**! Ваша характеристика {stat_to_up} збільшена на 10!"
+        else:
+            status_msg = f"У вас вже є **{weapon_name}**, ви просто міцніше стиснули його в руках."
 
         content = (res_path / "messages" / f"{file_prefix}.txt").read_text(encoding="utf-8")
         image = discord.File(str(res_path / "images" / f"{file_prefix}.png"), filename="weapon.png")
 
         await interaction.response.send_message(
-            f"🎲 Ви викинули {result}!\n\n{content}\n\n✨ Ваша характеристика {stat_to_up} збільшена на 10!",
+            f"🎲 Ви викинули {result}!\n\n{content}\n\n{status_msg}",
             file=image
         )
 
@@ -172,7 +179,8 @@ class ClassView(discord.ui.View):
             "nickname": self.nickname,
             "gender": self.gender,
             "user_id": interaction.user.id,
-            "stats": stats
+            "stats": stats,
+            "inventory": []  # Додаємо порожній інвентар
         }
 
         with open(player_file, "w", encoding="utf-8") as f:
