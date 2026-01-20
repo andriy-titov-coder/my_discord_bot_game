@@ -1,4 +1,3 @@
-import asyncio
 import json
 from pathlib import Path
 from typing import Any, cast
@@ -128,7 +127,8 @@ class StoryView(discord.ui.View):
             return m.author == user and m.channel == channel
 
         try:
-            msg = await bot.wait_for("message", check=check, timeout=300)
+            # Встановлюємо timeout=None, щоб бот чекав вічно
+            msg = await bot.wait_for("message", check=check, timeout=None)
             nickname = msg.content.strip()
             if not nickname:
                 await channel.send("Ім'я не може бути пустим. Спробуйте ще раз.")
@@ -138,10 +138,9 @@ class StoryView(discord.ui.View):
                 f"Чудове ім'я, **{nickname}**! Тепер обери свою стать:",
                 view=GenderView(nickname),
             )
-        except asyncio.TimeoutError:
-            await channel.send(
-                "Час очікування вийшов. Спробуй ще раз, натиснувши кнопку в головному каналі."
-            )
+        except Exception as e:
+            # Залишаємо загальний обробник на випадок системних помилок
+            print(f"DEBUG: Помилка при отриманні імені: {e}")
 
     @discord.ui.button(label="Хто я", style=cast(Any, ButtonStyle.success))
     async def story_1(self, interaction: discord.Interaction, _: discord.ui.Button):
