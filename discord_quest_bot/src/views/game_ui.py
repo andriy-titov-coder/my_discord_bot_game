@@ -6,6 +6,11 @@ from typing import Any, cast
 import discord
 from discord import ButtonStyle
 
+try:
+    from utils import save_player, get_text, get_image
+except ImportError:
+    from discord_quest_bot.src.utils import save_player, get_text, get_image
+
 
 
 
@@ -24,17 +29,11 @@ class ClassView(discord.ui.View):
         except ImportError:
             from discord_quest_bot.src.stories.who_am_i.levels import DirectionView
         
-        base_path = Path(__file__).resolve().parent.parent
-        resources_path = base_path / "resources"
+        content = get_text("wai_2")
+        img_file = get_image("wai_2")
 
-        msg_file = resources_path / "messages" / "wai_2.txt"
-        img_file = resources_path / "images" / "wai_2.png"
-
-        content = "Ви зробили свій вибір. Що далі?"
         file_to_send = None
 
-        if msg_file.exists():
-            content = msg_file.read_text(encoding="utf-8")
         if img_file.exists():
             file_to_send = discord.File(str(img_file), filename="wai_2.png")
 
@@ -47,10 +46,6 @@ class ClassView(discord.ui.View):
     async def create_player_file(self, interaction: discord.Interaction, class_key: str):
         base_path = Path(__file__).resolve().parent.parent
         template_path = base_path / "resources" / "classes" / f"{class_key}.json"
-        players_dir = base_path / "players"
-        players_dir.mkdir(exist_ok=True)
-
-        player_file = players_dir / f"{interaction.user.id}.json"
 
         with open(template_path, "r", encoding="utf-8") as f:
             stats = json.load(f)
@@ -63,8 +58,7 @@ class ClassView(discord.ui.View):
             "inventory": []  # Додаємо порожній інвентар
         }
 
-        with open(player_file, "w", encoding="utf-8") as f:
-            json.dump(player_data, f, ensure_ascii=False, indent=4)
+        save_player(interaction.user.id, player_data)
 
         return stats
 

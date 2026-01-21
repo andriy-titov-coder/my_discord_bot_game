@@ -8,6 +8,7 @@ from discord.ext import commands
 
 # Імпортуємо наші нові View
 from views.game_ui import GenderView
+from utils import load_player, get_text, get_image
 
 # Спробуємо імпортувати конфіг відносно розташування файлу
 try:
@@ -90,23 +91,12 @@ class StoryView(discord.ui.View):
             f"Пригода чекає на тебе тут: {channel.mention}", ephemeral=True
         )
 
-        # Визначаємо шляхи до ресурсів відносно файлу
-        base_path = Path(__file__).resolve().parent
-        resources_path = base_path / "resources"
-
         content = f"Ви обрали історію: **{story_name}**."
         file_to_send = None
 
         if story_name == "Хто я":
-            msg_file = resources_path / "messages" / "who_am_i.txt"
-            img_file = resources_path / "images" / "who_am_i.png"
-
-            if msg_file.exists():
-                try:
-                    content = msg_file.read_text(encoding="utf-8")
-                except OSError:
-                    # Якщо не вдалось прочитати файл через права доступу або іншу системну помилку
-                    pass
+            content = get_text("who_am_i")
+            img_file = get_image("who_am_i")
 
             if img_file.exists():
                 try:
@@ -164,18 +154,14 @@ async def setup(interaction: discord.Interaction):
 
 @bot.tree.command(name="stats", description="Показати ваші актуальні характеристики")
 async def stats(interaction: discord.Interaction):
-    base_path = Path(__file__).resolve().parent
-    player_file = base_path / "players" / f"{interaction.user.id}.json"
+    data = load_player(interaction.user.id)
 
-    if not player_file.exists():
+    if not data:
         await interaction.response.send_message(
             "У вас ще немає персонажа. Почніть гру за допомогою команди `/choice_story`!",
             ephemeral=True
         )
         return
-
-    with open(player_file, "r", encoding="utf-8") as f:
-        data = json.load(f)
 
     p_stats = data["stats"]
     nickname = data["nickname"]
